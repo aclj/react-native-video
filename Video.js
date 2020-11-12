@@ -138,6 +138,12 @@ export default class Video extends Component {
       this.props.onEnd(event.nativeEvent);
     }
   };
+  
+  _onMuteChanged = (event) => {
+    if (this.props.onMuteChanged) {
+      this.props.onMuteChanged(event.nativeEvent)
+    }
+  }
 
   _onTimedMetadata = (event) => {
     if (this.props.onTimedMetadata) {
@@ -313,6 +319,7 @@ export default class Video extends Component {
       onVideoBuffer: this._onBuffer,
       onVideoBandwidthUpdate: this._onBandwidthUpdate,
       onTimedMetadata: this._onTimedMetadata,
+      onMuteChanged: this._onMuteChanged,
       onVideoAudioBecomingNoisy: this._onAudioBecomingNoisy,
       onVideoExternalPlaybackChange: this._onExternalPlaybackChange,
       onVideoFullscreenPlayerWillPresent: this._onFullscreenPlayerWillPresent,
@@ -382,6 +389,7 @@ Video.propTypes = {
   onVideoBuffer: PropTypes.func,
   onVideoError: PropTypes.func,
   onVideoProgress: PropTypes.func,
+  onMuteChanged: PropTypes.func,
   onVideoBandwidthUpdate: PropTypes.func,
   onVideoSeek: PropTypes.func,
   onVideoEnd: PropTypes.func,
@@ -484,6 +492,7 @@ Video.propTypes = {
   onError: PropTypes.func,
   onProgress: PropTypes.func,
   onBandwidthUpdate: PropTypes.func,
+  onMuteChanged: PropTypes.func,
   onSeek: PropTypes.func,
   onEnd: PropTypes.func,
   onFullscreenPlayerWillPresent: PropTypes.func,

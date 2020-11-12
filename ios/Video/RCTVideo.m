@@ -13,6 +13,7 @@ static NSString *const readyForDisplayKeyPath = @"readyForDisplay";
 static NSString *const playbackRate = @"rate";
 static NSString *const timedMetadata = @"timedMetadata";
 static NSString *const externalPlaybackActive = @"externalPlaybackActive";
+static NSString *const mutedKeyPath = @"muted";
 
 static int const RCTVideoUnset = -1;
 
@@ -44,6 +45,7 @@ static int const RCTVideoUnset = -1;
   RCTEventDispatcher *_eventDispatcher;
   BOOL _playbackRateObserverRegistered;
   BOOL _isExternalPlaybackActiveObserverRegistered;
+  BOOL _mutedObserverRegistered;
   BOOL _videoLoadStarted;
   
   bool _pendingSeek;
@@ -100,6 +102,8 @@ static int const RCTVideoUnset = -1;
 	  _automaticallyWaitsToMinimizeStalling = YES;
     _playbackRateObserverRegistered = NO;
     _isExternalPlaybackActiveObserverRegistered = NO;
+    _mutedObserverRegistered = NO;
+    
     _playbackStalled = NO;
     _rate = 1.0;
     _volume = 1.0;
@@ -219,6 +223,7 @@ static int const RCTVideoUnset = -1;
   [self removePlayerItemObservers];
   [_player removeObserver:self forKeyPath:playbackRate context:nil];
   [_player removeObserver:self forKeyPath:externalPlaybackActive context: nil];
+  [_player removeObserver:self forKeyPath:mutedKeyPath context: nil];
 }
 
 #pragma mark - App lifecycle handlers
@@ -381,6 +386,10 @@ static int const RCTVideoUnset = -1;
         [self->_player removeObserver:self forKeyPath:externalPlaybackActive context:nil];
         self->_isExternalPlaybackActiveObserverRegistered = NO;
       }
+      if (self->_mutedObserverRegistered) {
+        [self->_player removeObserver:self forKeyPath:mutedKeyPath context:nil];
+        self->_mutedObserverRegistered = NO;
+      }
       
       self->_player = [AVPlayer playerWithPlayerItem:self->_playerItem];
       self->_player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
@@ -390,7 +399,10 @@ static int const RCTVideoUnset = -1;
       
       [self->_player addObserver:self forKeyPath:externalPlaybackActive options:0 context:nil];
       self->_isExternalPlaybackActiveObserverRegistered = YES;
-      
+
+      [self->_player addObserver:self forKeyPath:mutedKeyPath options:0 context:nil];
+      self->_mutedObserverRegistered = YES;
+        
       [self addPlayerTimeObserver];
       if (@available(iOS 10.0, *)) {
         [self setAutomaticallyWaitsToMinimizeStalling:_automaticallyWaitsToMinimizeStalling];
@@ -729,12 +741,22 @@ static int const RCTVideoUnset = -1;
         }
         _playbackStalled = NO;
       }
+      if(_player.rate == 0){
+        _paused = YES;
+      }else{
+        _paused = NO;
+      }
     }
     else if([keyPath isEqualToString:externalPlaybackActive]) {
       if(self.onVideoExternalPlaybackChange) {
         self.onVideoExternalPlaybackChange(@{@"isExternalPlaybackActive": [NSNumber numberWithBool:_player.isExternalPlaybackActive],
                                              @"target": self.reactTag});
       }
+    }else if([keyPath isEqualToString:mutedKeyPath]) {
+        if(self.onMuteChanged){
+            self.onMuteChanged(@{@"isMuted": [NSNumber numberWithBool:_player.isMuted],
+                                 @"target": self.reactTag});
+        }
     }
   } else if (object == _playerViewController.contentOverlayView) {
       // when controls==true, this is a hack to reset the rootview when rotation happens in fullscreen
@@ -1604,6 +1626,10 @@ static int const RCTVideoUnset = -1;
   if (_isExternalPlaybackActiveObserverRegistered) {
     [_player removeObserver:self forKeyPath:externalPlaybackActive context:nil];
     _isExternalPlaybackActiveObserverRegistered = NO;
+  }
+  if (_mutedObserverRegistered) {
+    [_player removeObserver:self forKeyPath:mutedKeyPath context:nil];
+      _mutedObserverRegistered = NO;
   }
   _player = nil;
   
